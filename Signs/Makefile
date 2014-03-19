@@ -23,6 +23,10 @@ all:
 ##	if ($(CC) $(SOURCES) -o $(EXECUTABLE) `pkg-config --libs --cflags opencv`)  then 
 ##		./$(EXECUTABLE) $(READ_FILE)
 
+run:
+	clear
+	./$(EXECUTABLE) Signals.txt 
+
 clean:
 
 ##OPTIONS

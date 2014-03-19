@@ -19,12 +19,13 @@ READ_FILE=Signals.txt
 
 all: 
 	clear
-	##$(CC) $(SOURCES) -o $(EXECUTABLE) `pkg-config --libs --cflags opencv`
+	$(CC) $(SOURCES) -o $(EXECUTABLE) `pkg-config --libs --cflags opencv`
 ##	if ($(CC) $(SOURCES) -o $(EXECUTABLE) `pkg-config --libs --cflags opencv`)  then 
 ##		./$(EXECUTABLE) $(READ_FILE)
-	if true then
-		echo BLUB
-	else	DERP
+
+run:
+	clear
+	./demo Signals.txt 
 
 clean:
 

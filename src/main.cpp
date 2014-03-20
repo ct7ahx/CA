@@ -87,7 +87,7 @@ int main()
 	webcam.set(CV_CAP_PROP_FRAME_WIDTH, height);
 	webcam.set(CV_CAP_PROP_FRAME_HEIGHT, width);
 
-	if (serialPort.connect("//dev//ttymc3")==0) {
+	if (serialPort.connect("//dev//ttymxc3")==0) {
 		cout << "Can't open serial port" << endl;
 		return -1;
 	}

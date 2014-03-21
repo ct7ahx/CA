@@ -1,0 +1,11 @@
+60.png
+bus A4.png
+depressão A4.png
+green_up_arrow.png
+hospital A4.png
+luz A4.png
+red_and_green_squares.png
+red_x.png
+supressão de faixa A4.png
+yellow_left_arrow.png
+yellow_right_arrow.png

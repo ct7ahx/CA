@@ -83,7 +83,7 @@ void detect_lines(Mat frame_bin, Mat frame_rgb, string frame_name){
 		return;
 
 	fitLine(continuousEdge, linReg, CV_DIST_L2, 0, 0.01, 0.01);
-
+	cout  << "0: "<< linReg.at(0) << " || 1: " << linReg.at(1) << " || 2: " << linReg.at(2) << " || 3: " << linReg.at(3) << endl;
 	float teta =abs(atan2(linReg.at(1),linReg.at(0)) * 180.0 / PI);
 	float teta1;
 	if(teta > straightAngle){

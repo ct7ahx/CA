@@ -97,7 +97,7 @@ void detect_lines(Mat frame_bin, Mat frame_rgb, string frame_name){
 	message << "s" << dir << (int)teta1;
 	serialPort.sendArray(message.str(), message.tellp());
 
-	cout  << "angulo: "<< teta << "message: " << message << endl;
+	cout  << "angulo: "<< teta << " || message: " << message.str() << endl;
 	//imshow(frame_name,img);
 
 }

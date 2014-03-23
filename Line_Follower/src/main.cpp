@@ -30,8 +30,12 @@ SerialPort serialPort;
 void SIGINT_handler(int signo){
 	std::stringstream message;
 
-	message << "mf00";
+	message << "mf00"; //sets speed to 0
 	serialPort.sendArray(message.str(), message.tellp());
+
+	message << "sr00"; //stops turning
+	serialPort.sendArray(message.str(), message.tellp());
+
 	cout << "Exiting by user instructions!" << endl;
 	exit(-1);
 }
@@ -95,8 +99,6 @@ void detect_lines(Mat frame_bin, Mat frame_rgb, string frame_name){
 	serialPort.sendArray(message.str(), message.tellp());
 	//imshow(frame_name,img);
 
-
-
 }
 
 int main()
@@ -112,7 +114,7 @@ int main()
 
 	serialPort.connect("//dev//ttymxc3");
 
-	message << "mf73";
+	message << "mf100";
 	serialPort.sendArray(message.str(), message.tellp());
 
 	signal (SIGINT, SIGINT_handler);

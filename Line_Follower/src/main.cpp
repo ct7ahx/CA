@@ -101,7 +101,7 @@ void detect_lines(Mat frame_bin, Mat frame_rgb, string frame_name){
 
 int main()
 {
-	VideoCapture webcam(1);
+	VideoCapture webcam(3);
 	Mat frame;
 	std::stringstream message;
 	  vector<vector<Point> > contours;

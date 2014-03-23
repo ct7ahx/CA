@@ -85,18 +85,19 @@ void detect_lines(Mat frame_bin, Mat frame_rgb, string frame_name){
 	fitLine(continuousEdge, linReg, CV_DIST_L2, 0, 0.01, 0.01);
 
 	float teta =abs(atan2(linReg.at(1),linReg.at(0)) * 180.0 / PI);
-	cout  << "angulo: "<< teta << endl;
-
+	float teta1;
 	if(teta > straightAngle){
 		dir = 'r';
-		teta=(teta-straightAngle);
+		teta1=(teta-straightAngle);
 	}
 	else{
 		dir = 'l';
-		teta=1.5*(straightAngle-teta);
+		teta1=1.5*(straightAngle-teta);
 	}
-	message << "s" << dir << (int)teta;
+	message << "s" << dir << (int)teta1;
 	serialPort.sendArray(message.str(), message.tellp());
+
+	cout  << "angulo: "<< teta << "message: " << message << endl;
 	//imshow(frame_name,img);
 
 }

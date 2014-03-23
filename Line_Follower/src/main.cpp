@@ -75,6 +75,9 @@ void detect_lines(Mat frame_bin, Mat frame_rgb, string frame_name){
 		}
 	}
 
+	if(continuousEdge.size()<2)
+		return;
+
 	fitLine(continuousEdge, linReg, CV_DIST_L2, 0, 0.01, 0.01);
 
 	float teta =abs(atan2(linReg.at(1),linReg.at(0)) * 180.0 / PI);
@@ -98,17 +101,17 @@ void detect_lines(Mat frame_bin, Mat frame_rgb, string frame_name){
 
 int main()
 {
-	VideoCapture webcam(3);
+	VideoCapture webcam(1);
 	Mat frame;
 	std::stringstream message;
+	  vector<vector<Point> > contours;
+	  vector<Vec4i> hierarchy;
 
 	webcam.set(CV_CAP_PROP_FRAME_WIDTH, height);
 	webcam.set(CV_CAP_PROP_FRAME_HEIGHT, width);
 
-	if (serialPort.connect("//dev//ttymxc3")==0) {
-		cout << "Can't open serial port" << endl;
-		return -1;
-	}
+	serialPort.connect("//dev//ttymxc3");
+
 	message << "mf73";
 	serialPort.sendArray(message.str(), message.tellp());
 
@@ -118,13 +121,29 @@ int main()
 	{
 		timer.reset();
 		webcam.read(frame);
+
+	    if(! frame.data ) // Check for invalid input
+	    {
+	        cout <<  "Could not open or find the image" << std::endl ;
+	        continue;
+	    }
 		cv::blur( frame, frame, Size(4,4) );
-		//imshow("Blured",frame);
+		imshow("Blured",frame);
 
 		Mat frame_can = Mat::zeros( frame.size(), CV_8UC3 );
 		cv::Canny( frame, frame_can, 50, 200, 3 );
 		detect_lines(frame_can, frame, "Canny");
+/*
+		findContours( frame_can, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0) );
 
+		/// Draw contours
+		Mat drawing = Mat::zeros( frame_can.size(), CV_8UC3 );
+		for( int i = 0; i< contours.size(); i++ )
+		{
+			Scalar color = Scalar( 255,255,255 );
+			drawContours( drawing, contours, i, color, 2, 8, hierarchy, 0, Point() );
+		}
+		imshow( "Contours", drawing );*/
 		//waitKey(5);
 
 		//cout << "Timer: "  << timer.elapsed() << endl;

@@ -27,7 +27,7 @@ vector<Point>  discontinuousEdge;
 SerialPort serialPort;
 
 
-void SIGINT_handler(){
+void SIGINT_handler(int signo){
 	std::stringstream message;
 
 	message << "mf00";

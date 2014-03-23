@@ -32,7 +32,7 @@ void SIGINT_handler(int signo){
 
 	message << "mf00";
 	serialPort.sendArray(message.str(), message.tellp());
-
+	cout << "Exiting by user instructions!" << endl;
 	exit(-1);
 }
 int abs(int value){

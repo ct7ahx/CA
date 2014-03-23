@@ -15,6 +15,7 @@
 #include "Utils.h"
 #include "SerialPort.h"
 
+#define FOLLOW_LINE_DISTANCE 100
 #define N_DIV 10
 
 using namespace cv;
@@ -47,7 +48,7 @@ int abs(int value){
 }
 
 void detect_lines(Mat frame_bin, Mat frame_rgb, string frame_name){
-	int intensity=0, col, line, count=0;
+	int intensity=0, col, line, distance;
 	Mat img;
 	std::stringstream message;
 	char dir;
@@ -55,6 +56,29 @@ void detect_lines(Mat frame_bin, Mat frame_rgb, string frame_name){
 	img = Scalar::all(0);
 	frame_rgb.copyTo(img, frame_bin);
 
+	line = lowerLimit;
+	for( col=height/2 ; col<height ; col++ ){
+		intensity = frame_bin.at<uchar>(Point(col,line));
+		if(intensity!=0){
+			distance=col-(height/2);
+			int teta;
+
+			if(distance > FOLLOW_LINE_DISTANCE){
+				dir='r';
+				teta=distance/100;
+			}else{
+				dir='l';
+				teta=distance/100;
+			}
+			message << "s" << dir << teta;
+			serialPort.sendArray(message.str(), message.tellp());
+			break;
+		}
+	}
+
+
+//with angles
+#if 0
 	continuousEdge.clear();
 	discontinuousEdge.clear();
 
@@ -64,7 +88,6 @@ void detect_lines(Mat frame_bin, Mat frame_rgb, string frame_name){
 			if(intensity!=0){
 				drawObject(col, line, img);
 				continuousEdge.push_back(Point(col,line));
-				count++;
 				break;
 			}
 		}
@@ -73,7 +96,6 @@ void detect_lines(Mat frame_bin, Mat frame_rgb, string frame_name){
 			if(intensity!=0){
 				drawObject(col, line, img);
 				discontinuousEdge.push_back(Point(col,line));
-				count++;
 				break;
 			}
 		}
@@ -83,6 +105,8 @@ void detect_lines(Mat frame_bin, Mat frame_rgb, string frame_name){
 		return;
 
 	fitLine(continuousEdge, linReg, CV_DIST_L2, 0, 0.01, 0.01);
+
+
 	cout  << "0: "<< linReg.at(0) << " || 1: " << linReg.at(1) << " || 2: " << linReg.at(2) << " || 3: " << linReg.at(3) << endl;
 	float teta =abs(atan2(linReg.at(1),linReg.at(0)) * 180.0 / PI);
 	float teta1;
@@ -99,6 +123,7 @@ void detect_lines(Mat frame_bin, Mat frame_rgb, string frame_name){
 
 	cout  << "angulo: "<< teta << " || message: " << message.str() << endl;
 	//imshow(frame_name,img);
+#endif
 
 }
 

@@ -128,7 +128,7 @@ int main()
 	        continue;
 	    }
 		cv::blur( frame, frame, Size(4,4) );
-		imshow("Blured",frame);
+		//imshow("Blured",frame);
 
 		Mat frame_can = Mat::zeros( frame.size(), CV_8UC3 );
 		cv::Canny( frame, frame_can, 50, 200, 3 );

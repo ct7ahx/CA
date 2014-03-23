@@ -70,6 +70,7 @@ void detect_lines(Mat frame_bin, Mat frame_rgb, string frame_name){
 				dir='l';
 				teta=distance/100;
 			}
+			cout  << "distance: "<< distance << " || teta: " << teta << endl;
 			message << "s" << dir << teta;
 			serialPort.sendArray(message.str(), message.tellp());
 			break;

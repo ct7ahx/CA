@@ -32,6 +32,8 @@ void SIGINT_handler(){
 
 	message << "mf00";
 	serialPort.sendArray(message.str(), message.tellp());
+
+	exit(-1);
 }
 int abs(int value){
 	if(value >=0)

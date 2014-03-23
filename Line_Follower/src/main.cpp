@@ -10,8 +10,7 @@
 #include <cstdlib>
 #include <sstream>
 #include <unistd.h>
-
-//yoyo
+#include <signal.h>
 
 #include "Utils.h"
 #include "SerialPort.h"
@@ -27,6 +26,13 @@ vector<Point> continuousEdge;
 vector<Point>  discontinuousEdge;
 SerialPort serialPort;
 
+
+void SIGINT_handler(){
+	std::stringstream message;
+
+	message << "mf00";
+	serialPort.sendArray(message.str(), message.tellp());
+}
 int abs(int value){
 	if(value >=0)
 		return value;
@@ -103,6 +109,9 @@ int main()
 	}
 	message << "mf73";
 	serialPort.sendArray(message.str(), message.tellp());
+
+	signal (SIGINT, SIGINT_handler);
+
 	while(true)
 	{
 		timer.reset();

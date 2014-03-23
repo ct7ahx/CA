@@ -15,7 +15,7 @@
 #include "Utils.h"
 #include "SerialPort.h"
 
-#define FOLLOW_LINE_DISTANCE 100
+#define FOLLOW_LINE_DISTANCE 250
 #define N_DIV 10
 
 using namespace cv;
@@ -65,10 +65,10 @@ void detect_lines(Mat frame_bin, Mat frame_rgb, string frame_name){
 
 			if(distance > FOLLOW_LINE_DISTANCE){
 				dir='r';
-				teta=distance/100;
+				teta=distance/20;
 			}else{
 				dir='l';
-				teta=distance/100;
+				teta=distance/25;
 			}
 			cout  << "distance: "<< distance << " || teta: " << teta << endl;
 			message << "s" << dir << teta;

@@ -41,7 +41,7 @@ using namespace std;
 Mat *signals;
 
 void drawObject(int x, int y,Mat &frame){
-	circle(frame,Point(x,y),1,Scalar(0,255,0),2);
+	circle(frame,Point(x,y),3,Scalar(0,255,0),2);
 }
 
 
@@ -90,11 +90,9 @@ int main(int argc, char* argv[])
 		char buf[20];
 		sprintf(buf,"Signal %d",n);
 		resize(signals[n], resized_signals[n], Size(resize_size, resize_size), 0, 0, INTER_CUBIC);
-		//cvtColor(resized_signals[n], resized_signals[n],CV_RGB2GRAY); //convert to grey
-		//resized_signals[n].reshape(1,0);	//1 channel reshape
-
+		//cv::cvtColor(resized_signals[n], resized_signals[n], CV_BGR2GRAY);
+		//Canny(resized_signals[n],resized_signals[n],127,300,3);
 		imshow(buf,resized_signals[n]);
-		//cout << resized_signals[n].channels <<endl; getchar();
 	}
 	////Mat is a 3 Channel Matrix
 	//Process signals
@@ -112,8 +110,10 @@ int main(int argc, char* argv[])
 	/*****/
 	int ***master_table = new int**[number]; //creates vector for the tables of each image
 	while(1){
+		//ALLOC MEMORY
 		int hlines=1,vlines=1;
-		int color, prev_color=-1;
+		int color=-1, prev_color=-1;
+		Vec3b pixel;
 		for(int i=0;i<number;i++){
 			master_table[i] = new int*[hlines];	//creates vector for horizontal and vertical lines line
 			for(int h=0;h<hlines;h++){
@@ -125,45 +125,40 @@ int main(int argc, char* argv[])
 		//MAIN ALGORITHM
 		for(int i=0;i<number;i++){
 			int counts=0;
+			pixel = resized_signals[i].at<Vec3b>(0,resize_size/2);
+
+			if(pixel[0]>127 || pixel[1]>127 || pixel[2]>127)
+				prev_color=1;
+			else	prev_color=0;
 			//h calculation
-			for(int hrow=0;hrow<resize_size;hrow++){
-				color=resized_signals[i].at<int>(hrow,resize_size/2);	//point color moving Horizontally
+			for(int hrow=1;hrow<resize_size;hrow++){
+				pixel = resized_signals[i].at<Vec3b>(hrow,resize_size/2);
+//cout << pixel<<endl;
+				if(pixel[0]>127 || pixel[1]>127 || pixel[2]>127)
+					color=1;
+				else	color=0;
 				if(color!=prev_color){
 					cout << counts++ << endl;
 					prev_color=color;
 					drawObject(hrow,resize_size/2,resized_signals[i]);
-				}	//save new transition
-				cout << resized_signals[i].at<int>(hrow,resize_size/2)<<endl;
+				}
+				drawObject(hrow,resize_size/2,resized_signals[i]);
+			cout<<hrow<<endl;
 			}
-			waitKey(0);
-
-			//show tracker
-			for(int n=0;n<number;n++){
-				char buf[20];
-				sprintf(buf,"Signal %d",n);
-				imshow(buf,resized_signals[n]);
-			}
-		}
+		waitKey(0);
+		}getchar();
 break; //TODO: DELETE AFTER MAKING V AND H 
-		//Clean up memorty to prepare new hipothesis
+		//Clean up memory to prepare new hipothesis
 		for(int i=0;i<number;i++){
 			for(int h=0;h<hlines;h++)
 				delete [] master_table[i][h];	//deletes H and V pair table from each image
 			delete [] master_table [i];		//deletes H identifier
 		}	
-		//if(waitKey(0))
-		//	break;
 	}
-	
-	
-		//TODO: height/2^(n++) alternado com vertica comeca com n=1
-		//contagem contando as transicoes para fora ou sem contar as transicoes para fora?
-		//Ter em atenção que depois na imagem da camara o existe gradiente nas cores do sinal o que trama a coisa...
-	
 	//Clean up
-		delete [] master_table;			//deletes master_table
-		fp.close();
-		delete [] signals;
+	delete [] master_table;			//deletes master_table
+	fp.close();
+	delete [] signals;
 
   return 0;
  }

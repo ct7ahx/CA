@@ -11,13 +11,22 @@ using namespace std;
 const int FRAME_WIDTH = 640;
 const int FRAME_HEIGHT = 480;
 
-Mat src; Mat src_gray;
+typedef struct _canny_def{
+	Mat src_gray;
+	char filter_name[20];
+}define_canny;
+define_canny struct_canny[3];
+
+
+Mat src;
+Mat src_bgr[3];
+Mat test_gray;
 int thresh = 60;
 int max_thresh = 255;
 RNG rng(12345);
 
 /// Function header
-void thresh_callback(int, void* );
+void thresh_callback(int, void* argv);
 
 /** @function main */
 int main( int argc, char** argv )
@@ -34,19 +43,41 @@ int main( int argc, char** argv )
 	while(1){
 		/// Load source image and convert it to gray
 		// src = imread( "Signs/bus A4.png", 1 );
-		capture.read(src);
+		//capture.read(src);
 
-		/// Convert image to gray and blur it
-		cvtColor( src, src_gray, CV_BGR2GRAY );
-		blur( src_gray, src_gray, Size(5,5) );
+		///Get image from camera and split(or to get patern signals)
+		src = imread("Test_Signals/1.jpg",CV_LOAD_IMAGE_COLOR);
+		//src = imread("Test_Signals/rgb.png",CV_LOAD_IMAGE_COLOR);
+		split(src,src_bgr);
+		/// Convert each filter to gray and blur it(CAN SPLIT INTO THREADS
+		struct_canny[0].src_gray=src_bgr[0];
+		struct_canny[1].src_gray=src_bgr[1];
+		struct_canny[2].src_gray=src_bgr[2];
+		//cvtColor( src_bgr[0], struct_canny[0].src_gray, CV_BGR2GRAY );
+		blur(struct_canny[0].src_gray,struct_canny[0].src_gray, Size(3,3) );
+		strcpy(struct_canny[0].filter_name,"CannyB");
+		//cvtColor( src_bgr[1],struct_canny[1].src_gray, CV_BGR2GRAY );
+		blur(struct_canny[1].src_gray,struct_canny[1].src_gray, Size(3,3) );
+		strcpy(struct_canny[1].filter_name,"CannyG");
+		//cvtColor( src_bgr[1],struct_canny[2].src_gray, CV_BGR2GRAY );
+		blur(struct_canny[2].src_gray,struct_canny[2].src_gray, Size(3,3) );
+		strcpy(struct_canny[2].filter_name,"CannyR");
 
-		/// Create Window
-		char* source_window = "Source";
-		namedWindow( source_window, CV_WINDOW_AUTOSIZE );
-		imshow( source_window, src );
+	/// Create and show DEFAULT IMAGE
+	char* source_window = "Source";
+	namedWindow( source_window, CV_WINDOW_AUTOSIZE );
+	imshow( source_window, src );
+	///DEBUG RGB IMAGE
+	imshow("B", src_bgr[0]);
+	imshow("G", src_bgr[1]);
+	imshow("R", src_bgr[2]);
 
-		createTrackbar( " Canny thresh:", "Source", &thresh, max_thresh, thresh_callback );
-		thresh_callback( 0, 0 );
+		///Aply Canny to each filter RGB (CAN SPLIT INTO THREADS)
+		createTrackbar( " Canny thresh:", "Source", &thresh, max_thresh);//, thresh_callback ); //define threshold
+		//Aply for each -> thresh_callback(num_args,Mat *src_grey,const char <window name>)
+		thresh_callback( 1, (void *) &struct_canny[0]);
+		thresh_callback( 1, (void *) &struct_canny[1]);
+		thresh_callback( 1, (void *) &struct_canny[2]);
 
 		waitKey(50);
 	}
@@ -54,14 +85,19 @@ int main( int argc, char** argv )
 }
 
 /** @function thresh_callback */
-void thresh_callback(int, void* )
+void thresh_callback(int num, void *argv)
 {
   Mat canny_output;
   vector<vector<Point> > contours;
   vector<Vec4i> hierarchy;
 
+  define_canny *data = (define_canny *) argv;
+
   /// Detect edges using canny
-  Canny( src_gray, canny_output, thresh, thresh*2, 3 );
+  Canny( data->src_gray, canny_output, thresh, thresh*2, 3 );
+  char buf[20];
+  strcpy(buf,data->filter_name);strcat(buf,"CANNY");
+  imshow(buf,canny_output);
   /// Find contours
   findContours( canny_output, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0) );
 
@@ -85,8 +121,10 @@ void thresh_callback(int, void* )
      }
 
   /// Show in a window
-  namedWindow( "Contours", CV_WINDOW_AUTOSIZE );
-  imshow( "Contours", drawing );
+ // namedWindow( "Contours", CV_WINDOW_AUTOSIZE );
+  //imshow( "Contours", drawing );
+  namedWindow( data->filter_name, CV_WINDOW_AUTOSIZE );
+  imshow( data->filter_name, drawing );
 
   /// Calculate the area with the moments 00 and compare with the result of the OpenCV function
   printf("\t Info: Area and Contour Length \n");

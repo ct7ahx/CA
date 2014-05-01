@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define BOUNDING_AREA 2000		//Min area to consider for analysis
+
 using namespace cv;
 using namespace std;
 
@@ -13,6 +15,7 @@ const int FRAME_HEIGHT = 480;
 
 typedef struct _canny_def{
 	Mat src_gray;
+	Mat bin;
 	char filter_name[20];
 	vector<Point2i> filter_mc_points;
 }define_canny;
@@ -32,7 +35,6 @@ void thresh_callback(int, void* argv);
 /** @function main */
 int main( int argc, char** argv )
 {
-	///video capture object to acquire webcam feed
 		VideoCapture capture;
 
 	///open capture object at location zero (default location for webcam)
@@ -43,12 +45,13 @@ int main( int argc, char** argv )
 		capture.set(CV_CAP_PROP_FRAME_HEIGHT,FRAME_HEIGHT);
 	while(1){
 		/// Load source image and convert it to gray
-		 src = imread( "Signs/bus A4.png",CV_LOAD_IMAGE_COLOR);
-		//capture.read(src);
+		 //src = imread( "Signs/bus A4.png",CV_LOAD_IMAGE_COLOR);
+		capture.read(src);
 
 		///Get image from camera and split(or to get patern signals)
-		//src = imread("Test_Signals/1.jpg",CV_LOAD_IMAGE_COLOR);
-		//src = imread("Test_Signals/rgb.png",CV_LOAD_IMAGE_COLOR);
+		src = imread("Test_Signals/10.jpg",CV_LOAD_IMAGE_COLOR);
+		//src = imread("Test_Signals/garrafa.jpg",CV_LOAD_IMAGE_COLOR); //RESOLUCAO MUITO GRANDE, USE AT UR OWN RISK!!!
+		//src = imread("Signs/yellow_left_arrow.png",CV_LOAD_IMAGE_COLOR);
 		split(src,src_bgr);
 		/// Convert each filter to gray and blur it(CAN SPLIT INTO THREADS
 		//EDIT: As the images are in RGB separated filters, it counts as grayscale images
@@ -67,9 +70,23 @@ int main( int argc, char** argv )
 	namedWindow( source_window, CV_WINDOW_AUTOSIZE );
 	imshow( source_window, src );
 	///DEBUG RGB IMAGE
-	imshow("B", src_bgr[0]);
-	imshow("G", src_bgr[1]);
-	imshow("R", src_bgr[2]);
+	//imshow("B", src_bgr[0]);
+	//imshow("G", src_bgr[1]);
+	//imshow("R", src_bgr[2]);
+
+	threshold(struct_canny[0].src_gray,struct_canny[0].bin, 50, 255,THRESH_BINARY);
+	threshold(struct_canny[1].src_gray,struct_canny[1].bin, 50, 255,THRESH_BINARY);
+	threshold(struct_canny[2].src_gray,struct_canny[2].bin, 50, 255,THRESH_BINARY);
+	Mat Aux0 = struct_canny[0].bin - (struct_canny[0].bin & struct_canny[1].bin & struct_canny[2].bin);
+	Mat Aux1 = struct_canny[1].bin - (struct_canny[0].bin & struct_canny[1].bin & struct_canny[2].bin);
+	Mat Aux2 = struct_canny[2].bin - (struct_canny[0].bin & struct_canny[1].bin & struct_canny[2].bin);
+	struct_canny[0].bin = Aux0;
+	struct_canny[1].bin = Aux1;
+	struct_canny[2].bin = Aux2;
+
+	//imshow("BAND", Aux0);
+	//imshow("GAND", Aux1);
+	//imshow("RAND", Aux2);
 
 		///Aply Canny to each filter RGB (CAN SPLIT INTO THREADS)
 		createTrackbar( " Canny thresh:", "Source", &thresh, max_thresh);//, thresh_callback ); //define threshold
@@ -83,7 +100,7 @@ int main( int argc, char** argv )
 		//TODO:PERCORRER VECTOR COM TEST obtido
 		//struct_canny[0].filter_mc_points.front()
 		struct_canny[0].filter_mc_points.clear();
-		waitKey(1);
+		waitKey(0);
 	}
   return(0);
 }
@@ -95,13 +112,51 @@ void thresh_callback(int num, void *argv)
   vector<vector<Point> > contours;
   vector<Vec4i> hierarchy;
   char buf[20];
-
+Mat bin;
   define_canny *data = (define_canny *) argv;
 
   /// Detect edges using canny
-  Canny( data->src_gray, canny_output, thresh, thresh*2, 3 );
+  //Canny( data->src_gray, canny_output, thresh, thresh*2, 3 );
+  Canny( data->bin, canny_output, thresh, thresh*2, 3 );
+  //threshold(data->src_gray,bin, 70, 255,THRESH_BINARY);
+    //imshow( data->filter_name, bin);
+
   /// Find contours
   findContours( canny_output, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0) );
+
+  /// Approximate contours to polygons + get bounding rects and circles
+  vector<vector<Point> > contours_poly( contours.size() );
+  vector<Rect> boundRect( contours.size() );
+  vector<Point2f>center( contours.size() );
+  vector<float>radius( contours.size() );
+
+  for( int i = 0; i < contours.size(); i++ )
+     { approxPolyDP( Mat(contours[i]), contours_poly[i], 3, true );
+       boundRect[i] = boundingRect( Mat(contours_poly[i]) );
+       minEnclosingCircle( (Mat)contours_poly[i], center[i], radius[i] );
+     }
+
+
+  /// Draw polygonal contour + bonding rects + circles
+  Mat drawing = Mat::zeros( canny_output.size(), CV_8UC3 );
+  for( int i = 0; i< contours.size(); i++ )
+     {char num[6];
+		if(boundRect[i].area()>BOUNDING_AREA){
+			Scalar color = Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) );
+			drawContours( drawing, contours_poly, i, color, 1, 8, vector<Vec4i>(), 0, Point() );
+			rectangle( drawing, boundRect[i].tl(), boundRect[i].br(), color, 2, 8, 0 );
+			cout << boundRect[i] <<endl;
+			strcpy(buf,"Croped ");strcat(buf,data->filter_name);sprintf(num,"%d",i);strcat(buf,num);
+			Mat croppedImage = src(boundRect[i]);
+			imshow(buf,croppedImage);
+             //circle( drawing, center[i], (int)radius[i], color, 2, 8, 0 );
+		}
+     }
+
+  /// Show in a window
+  namedWindow( "Contours", CV_WINDOW_AUTOSIZE );
+  strcpy(buf,"Contours");strcat(buf,data->filter_name);
+  //imshow(buf, drawing );
 
   /// Get the moments
   vector<Moments> mu(contours.size() );
@@ -116,7 +171,7 @@ void thresh_callback(int num, void *argv)
      data->filter_mc_points.push_back(Point2i((int) mu[i].m10/mu[i].m00,(int) mu[i].m01/mu[i].m00 ));}
 
   /// Draw contours (Nao e preciso isto e treta!!!)
- Mat drawing = Mat::zeros( canny_output.size(), CV_8UC3 );
+drawing = Mat::zeros( canny_output.size(), CV_8UC3 );
  /* for( int i = 0; i< contours.size(); i++ )
      {
        Scalar color = Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) );
@@ -138,6 +193,6 @@ void thresh_callback(int num, void *argv)
      }
 
   /// Show in a window
-  namedWindow( data->filter_name, CV_WINDOW_AUTOSIZE );
-  imshow( data->filter_name, drawing );
+ // namedWindow( data->filter_name, CV_WINDOW_AUTOSIZE );
+  //imshow( data->filter_name, drawing );
 }

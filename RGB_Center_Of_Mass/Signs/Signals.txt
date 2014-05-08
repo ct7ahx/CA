@@ -1,0 +1,6 @@
+60.png
+bus.png
+depressao.png
+hospital.png
+luz.png
+supressao_de_faixa.png

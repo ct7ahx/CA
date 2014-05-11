@@ -1,6 +1,10 @@
-60.png
+luz.png
 bus.png
+60.png
 depressao.png
 hospital.png
-luz.png
 supressao_de_faixa.png
+red_and_green_squares.png
+red_x.png
+yellow_left_arrow.png
+yellow_right_arrow.png

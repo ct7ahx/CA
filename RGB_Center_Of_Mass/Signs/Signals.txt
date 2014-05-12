@@ -1,5 +1,5 @@
-luz.png
 bus.png
+luz.png
 60.png
 depressao.png
 hospital.png

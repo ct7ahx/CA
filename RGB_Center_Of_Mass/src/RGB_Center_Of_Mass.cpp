@@ -22,8 +22,9 @@
 
 #define BOUNDING_AREA 1500		//Min area to consider for analysis
 #define BINARY_THRESHOLD 50		//Binary Threshold for filter binary calculation
-#define RESIZE_XY_SIZE Size(300,300)
+#define RESIZE_XY_SIZE Size(400,400)
 #define CANNY_THRESHOLD 200
+#define MIN_MATCH 10
 
 #define TINY_NAME_BYTES		10
 #define SMALL_NAME_BYTES	50
@@ -61,6 +62,7 @@ typedef struct _compare_signal{
 vector<define_compare_signal> compare_signals;
 
 vector<Mat> possible_signals;
+vector<Rect> possible_signals_rect;
 
 //Camera Image
 Mat src;
@@ -94,13 +96,13 @@ int main( int argc, char** argv )
 	Mat aux, resize_aux;
 	Mat Aux[3];
 	string name, append = "Signs/";;
-	Ptr<FeatureDetector> detector(new OrbFeatureDetector(5000));
+	Ptr<FeatureDetector> detector(new OrbFeatureDetector(5000,1.2,23));
 	Ptr<DescriptorExtractor> extractor(new OrbDescriptorExtractor(5000));
 	BFMatcher matcher(NORM_HAMMING2);
 	vector<vector<DMatch> > matches;
 	Mat img_matches;
 	Mat testest;
-	int best_match;
+	unsigned int best_match;
 	int number_best_match;
 
 	while(!fp.eof()){
@@ -120,19 +122,16 @@ int main( int argc, char** argv )
 		blur(compare_signals[num_signals].ref,compare_signals[num_signals].src_gray, Size(3,3) );
 		detector->detect(compare_signals[num_signals].src_gray,compare_signals[num_signals].keypoints);
 		extractor->compute(compare_signals[num_signals].src_gray,compare_signals[num_signals].keypoints,compare_signals[num_signals].descriptors);
-#if(false)//DEBUG == true)
-		imshow("descriptors",compare_signals[num_signals].descriptors);
-		compare_signals[num_signals].ref.copyTo(testest);
-		drawKeypoints(testest,compare_signals[num_signals].keypoints,testest);
-		imshow("Keypoints",testest);
-#endif
 		//waitKey(1);
 
 	}
+	//for(unsigned int nn=0; nn<compare_signals.size(); nn++){
+	//	imshow("Descriptors",compare_signals[nn].descriptors);waitKey(0);}
 	while(1){
 		//Sharpen image
 		Mat image;
 		capture.read(src);
+		//src = imread("Test_Signals/11.jpg");
 		src_puro = src;
 		GaussianBlur(src,image,cv::Size(0, 0), 3);
 		//imshow("Blur",image);
@@ -187,11 +186,11 @@ int main( int argc, char** argv )
 			detector->detect(test_gray,keypoints);
 			extractor->compute(test_gray,keypoints,descriptors);
 			best_match=0;
-			number_best_match=5;
+			number_best_match=-1;
 			for(unsigned int num_signals = 0,matchCount=0; num_signals<compare_signals.size();num_signals++){
-				matcher.knnMatch(descriptors,compare_signals[0].descriptors,matches,1);
+				matcher.knnMatch(descriptors,compare_signals[num_signals].descriptors,matches,1);
 				matchCount=0;
-				for (int n=0; n<matches.size(); ++n) {
+				for (unsigned int n=0; n<matches.size(); ++n) {
 					if (matches[n].size() > 0){
 						if (matches[n][0].distance > distThreshold){
 							matches[n].erase(matches[n].begin());
@@ -202,17 +201,20 @@ int main( int argc, char** argv )
 					}
 				}
 				cout << "MATCH COUNT " << matchCount << endl;
-				if(matchCount>best_match){
+				if(matchCount>best_match && matchCount >= MIN_MATCH){
 					best_match = matchCount;
 					number_best_match = num_signals;
 				}
-			}
-			drawMatches(test_gray, keypoints, compare_signals[number_best_match].ref, compare_signals[number_best_match].keypoints, matches, img_matches );
-			imshow("IMAGE MAtCHES",img_matches);
-			waitKey(1);
 
+			}
+			if(number_best_match!=-1){
+				drawMatches(test_gray, keypoints, compare_signals[number_best_match].ref, compare_signals[number_best_match].keypoints, matches, img_matches );
+				imshow("IMAGE MAtCHES",img_matches);
+				waitKey(1);
+			}
 			possible_signals.pop_back();
 		}
+		possible_signals_rect.clear();
 	}
 	destroyAllWindows();
 	return 0;
@@ -242,7 +244,7 @@ void find_possible_signals(int num, void *argv)
 	vector<Point2f>center( contours.size() );
 	vector<float>radius( contours.size() );
 
-	for( int i = 0; i < contours.size(); i++ )
+	for( unsigned int i = 0; i < contours.size(); i++ )
 	{ approxPolyDP( Mat(contours[i]), contours_poly[i], 3, true );
 	boundRect[i] = boundingRect( Mat(contours_poly[i]) );
 	minEnclosingCircle( (Mat)contours_poly[i], center[i], radius[i] );
@@ -253,13 +255,23 @@ void find_possible_signals(int num, void *argv)
 	src.copyTo(drawing);
 
 	Mat aux_resize;
-	for( int i = 0; i< contours.size(); i++ ){
+	bool correr = true;
+	for(unsigned int i = 0; i< contours.size(); i++ ){
 		if(boundRect[i].area()>BOUNDING_AREA && !((boundRect[i].height > (boundRect[i].width * 1.10)) || (boundRect[i].height < (boundRect[i].width * 0.90)))){
-			Scalar color = Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) );
-			drawContours( drawing, contours_poly, i, color, 1, 8, vector<Vec4i>(), 0, Point() );
-			rectangle( drawing, boundRect[i].tl(), boundRect[i].br(), color, 2, 8, 0 );
-			resize(src_puro(boundRect[i]),aux_resize,RESIZE_XY_SIZE);
-			possible_signals.push_back(aux_resize);
+			for(unsigned int num_rect = 0; num_rect<possible_signals_rect.size(); num_rect++){
+				if(possible_signals_rect[num_rect]==boundRect[i]){
+					correr = false; break;}
+			}
+			if(correr){
+				Scalar color = Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) );
+				Rect rectangulo(boundRect[i]);
+				drawContours( drawing, contours_poly, i, color, 1, 8, vector<Vec4i>(), 0, Point() );
+				rectangle( drawing, boundRect[i].tl(), boundRect[i].br(), color, 2, 8, 0 );
+				resize(src_puro(boundRect[i]),aux_resize,RESIZE_XY_SIZE);
+				//resize(src(boundRect[i]),aux_resize,RESIZE_XY_SIZE);
+				possible_signals.push_back(aux_resize);
+				possible_signals_rect.push_back(rectangulo);
+			}
 		}
 	}
 	imshow("Drawing",drawing);waitKey(1);
